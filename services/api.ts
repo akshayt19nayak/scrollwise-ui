@@ -31,5 +31,15 @@ export const api = {
       console.error('Error getting all submissions:', error);
       throw error;
     }
+  },
+
+  async getSummary(text: string) {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/summarize`, { text });
+      return response.data.summary;
+    } catch (error) {
+      console.error('Error getting summary:', error);
+      throw error;
+    }
   }
 }; 
