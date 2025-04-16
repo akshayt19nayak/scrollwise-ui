@@ -4,7 +4,6 @@ import { PaperProvider, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import TextInputBox from '../components/TextInputBox';
 import FileUploader from '../components/FileUploader';
-import SubmitButton from '../components/SubmitButton';
 import { api } from '../services/api';
 
 export default function App() {
@@ -49,7 +48,13 @@ export default function App() {
         <View style={styles.inputSection}>
           <TextInputBox value={url} onChangeText={handleUrlInput} />
           <FileUploader onFileSelect={setFile} />
-          <SubmitButton onPress={handleSubmit} disabled={!isFormValid || isSubmitting} />
+          <Button 
+            mode="contained" 
+            onPress={handleSubmit} 
+            disabled={!isFormValid || isSubmitting} 
+          >
+            Submit
+          </Button>
         </View>
         <View style={styles.buttonSection}>
           <Button 
