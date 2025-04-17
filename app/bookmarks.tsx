@@ -1,13 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
-import SubmissionsList from '../components/SubmissionsList';
+import BookmarksList from '@/components/BookmarksList';
 
-export default function SubmissionsPage() {
+export default function BookmarksPage() {
   return (
     <PaperProvider>
       <View style={styles.container}>
-        <SubmissionsList />
+        <BookmarksList />
       </View>
     </PaperProvider>
   );
