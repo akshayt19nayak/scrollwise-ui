@@ -52,11 +52,6 @@ export const api = {
         return response.data;
     },
 
-    getSummary: async (text: string) => {
-        const response = await axios.post(`${API_BASE_URL}/api/summarize`, { text });
-        return response.data;
-    },
-
     getBookmarksByTag: async (tagId: number) => {
         const response = await axios.get(`${API_BASE_URL}/api/tags/${tagId}/bookmarks`);
         return response.data;
@@ -66,4 +61,29 @@ export const api = {
         const response = await axios.get(`${API_BASE_URL}/api/collections/${collectionId}/bookmarks`);
         return response.data;
     }
+};
+
+export const saveBookmarkSummary = async (bookmarkId: number): Promise<{ id: number; summary: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/bookmarks/${bookmarkId}/summary`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to save summary');
+    }
+
+    return response.json();
+};
+
+export const getBookmarkSummary = async (bookmarkId: number): Promise<{ summary: string }> => {
+    const response = await fetch(`${API_BASE_URL}/api/bookmarks/${bookmarkId}/summary`);
+
+    if (!response.ok) {
+        throw new Error('Failed to get summary');
+    }
+
+    return response.json();
 }; 

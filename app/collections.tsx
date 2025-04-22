@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { PaperProvider, Card, Title, Paragraph, ActivityIndicator, Searchbar, Button } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { api } from '../services/api';
+import { api, saveBookmarkSummary, getBookmarkSummary } from '../services/api';
 
 interface Tag {
   id: number;
@@ -157,26 +157,51 @@ export default function CollectionsPage() {
     );
 
     try {
-      const response = await api.getSummary(bookmark.text);
-      
-      // Update the collections with the summary
-      setCollections(prev => 
-        prev.map(collection => ({
-          ...collection,
-          bookmarks: collection.bookmarks.map(b => 
-            b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
-          )
-        }))
-      );
-      
-      setFilteredCollections(prev => 
-        prev.map(collection => ({
-          ...collection,
-          bookmarks: collection.bookmarks.map(b => 
-            b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
-          )
-        }))
-      );
+      // First check if we already have a summary
+      try {
+        const savedSummary = await getBookmarkSummary(bookmark.id);
+        
+        // Update the collections with the summary
+        setCollections(prev => 
+          prev.map(collection => ({
+            ...collection,
+            bookmarks: collection.bookmarks.map(b => 
+              b.id === bookmark.id ? { ...b, summary: savedSummary.summary, isLoadingSummary: false } : b
+            )
+          }))
+        );
+        
+        setFilteredCollections(prev => 
+          prev.map(collection => ({
+            ...collection,
+            bookmarks: collection.bookmarks.map(b => 
+              b.id === bookmark.id ? { ...b, summary: savedSummary.summary, isLoadingSummary: false } : b
+            )
+          }))
+        );
+      } catch (error) {
+        // If no summary exists, generate and save a new one
+        const response = await saveBookmarkSummary(bookmark.id);
+        
+        // Update the collections with the summary
+        setCollections(prev => 
+          prev.map(collection => ({
+            ...collection,
+            bookmarks: collection.bookmarks.map(b => 
+              b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
+            )
+          }))
+        );
+        
+        setFilteredCollections(prev => 
+          prev.map(collection => ({
+            ...collection,
+            bookmarks: collection.bookmarks.map(b => 
+              b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
+            )
+          }))
+        );
+      }
     } catch (err: any) {
       console.error('Error getting summary:', err);
       Alert.alert(

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
 import { Card, Title, Paragraph, ActivityIndicator, Chip, Button, Searchbar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { api } from '../services/api';
+import { api, saveBookmarkSummary, getBookmarkSummary } from '../services/api';
 
 interface Tag {
   id: number;
@@ -41,6 +41,8 @@ export default function BookmarksList() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredBookmarks, setFilteredBookmarks] = useState<BookmarkWithSummary[]>([]);
+  const [selectedBookmark, setSelectedBookmark] = useState<Bookmark | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
 
   useEffect(() => {
     const loadBookmarks = async () => {
@@ -76,28 +78,68 @@ export default function BookmarksList() {
     setFilteredBookmarks(filtered);
   }, [searchQuery, bookmarks]);
 
-  const handleBookmarkClick = async (bookmark: BookmarkWithSummary) => {
-    setBookmarks(prev =>
-      prev.map(b =>
+  const handleBookmarkClick = async (bookmark: Bookmark) => {
+    // Set loading state for this bookmark
+    setBookmarks(prev => 
+      prev.map(b => 
+        b.id === bookmark.id ? { ...b, isLoadingSummary: true } : b
+      )
+    );
+    setFilteredBookmarks(prev => 
+      prev.map(b => 
         b.id === bookmark.id ? { ...b, isLoadingSummary: true } : b
       )
     );
 
     try {
-      const response = await api.getSummary(bookmark.text);
-      setBookmarks(prev =>
-        prev.map(b =>
-          b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
+      // First check if we already have a summary
+      try {
+        const savedSummary = await getBookmarkSummary(bookmark.id);
+        setSelectedBookmark(bookmark);
+        setSummary(savedSummary.summary);
+        
+        // Update the bookmark in the list
+        setBookmarks(prev => 
+          prev.map(b => 
+            b.id === bookmark.id ? { ...b, summary: savedSummary.summary, isLoadingSummary: false } : b
+          )
+        );
+        setFilteredBookmarks(prev => 
+          prev.map(b => 
+            b.id === bookmark.id ? { ...b, summary: savedSummary.summary, isLoadingSummary: false } : b
+          )
+        );
+        return;
+      } catch (error) {
+        // If no summary exists, generate and save a new one
+        const response = await saveBookmarkSummary(bookmark.id);
+        setSelectedBookmark(bookmark);
+        setSummary(response.summary);
+        
+        // Update the bookmark in the list
+        setBookmarks(prev => 
+          prev.map(b => 
+            b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
+          )
+        );
+        setFilteredBookmarks(prev => 
+          prev.map(b => 
+            b.id === bookmark.id ? { ...b, summary: response.summary, isLoadingSummary: false } : b
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error handling bookmark click:', error);
+      Alert.alert('Error', 'Failed to generate summary');
+      
+      // Reset loading state on error
+      setBookmarks(prev => 
+        prev.map(b => 
+          b.id === bookmark.id ? { ...b, isLoadingSummary: false } : b
         )
       );
-    } catch (err: any) {
-      console.error('Error getting summary:', err);
-      Alert.alert(
-        'Error',
-        err.response?.data?.error || 'Failed to generate summary.'
-      );
-      setBookmarks(prev =>
-        prev.map(b =>
+      setFilteredBookmarks(prev => 
+        prev.map(b => 
           b.id === bookmark.id ? { ...b, isLoadingSummary: false } : b
         )
       );

@@ -4,7 +4,7 @@ import { PaperProvider, Button, TextInput, Chip, Portal, Modal, List } from 'rea
 import { useRouter } from 'expo-router';
 import TextInputBox from '../components/TextInputBox';
 import FileUploader from '../components/FileUploader';
-import { api } from '../services/api';
+import { api, saveBookmarkSummary } from '../services/api';
 
 interface Collection {
   id: number;
@@ -75,12 +75,22 @@ export default function App() {
 
     setIsSubmitting(true);
     try {
-      await api.saveBookmark(
+      // First save the bookmark
+      const bookmarkResponse = await api.saveBookmark(
         url,
         title,
         selectedCollectionId || undefined,
         selectedTagIds.length > 0 ? selectedTagIds : undefined
       );
+
+      // Then save the summary
+      try {
+        await saveBookmarkSummary(bookmarkResponse.id);
+      } catch (summaryError) {
+        console.error('Failed to save summary:', summaryError);
+        // Don't show error to user since bookmark was saved successfully
+      }
+
       setUrl('');
       setTitle('');
       setSelectedCollectionId(null);
