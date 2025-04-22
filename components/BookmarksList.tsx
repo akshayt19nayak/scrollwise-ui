@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, Text, TouchableOpacity, Alert } from 'react-native';
-import { Card, Title, Paragraph, ActivityIndicator, Chip, Button } from 'react-native-paper';
+import { Card, Title, Paragraph, ActivityIndicator, Chip, Button, Searchbar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { api } from '../services/api';
 
@@ -39,12 +39,15 @@ export default function BookmarksList() {
   const router = useRouter();
   const [bookmarks, setBookmarks] = useState<BookmarkWithSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filteredBookmarks, setFilteredBookmarks] = useState<BookmarkWithSummary[]>([]);
 
   useEffect(() => {
     const loadBookmarks = async () => {
       try {
         const data = await api.getAllBookmarks();
         setBookmarks(data);
+        setFilteredBookmarks(data);
       } catch (err) {
         console.error('Failed to load bookmarks:', err);
       } finally {
@@ -53,6 +56,25 @@ export default function BookmarksList() {
     };
     loadBookmarks();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setFilteredBookmarks(bookmarks);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = bookmarks.filter(bookmark => {
+      const titleMatch = bookmark.title?.toLowerCase().includes(query);
+      const textMatch = bookmark.text.toLowerCase().includes(query);
+      const collectionMatch = bookmark.collection_name?.toLowerCase().includes(query);
+      const tagMatch = bookmark.tags?.some(tag => tag.name.toLowerCase().includes(query));
+      
+      return titleMatch || textMatch || collectionMatch || tagMatch;
+    });
+    
+    setFilteredBookmarks(filtered);
+  }, [searchQuery, bookmarks]);
 
   const handleBookmarkClick = async (bookmark: BookmarkWithSummary) => {
     setBookmarks(prev =>
@@ -89,90 +111,100 @@ export default function BookmarksList() {
   if (loading) return <StatusMessage message="Loading bookmarks..." />;
 
   return (
-    <ScrollView style={styles.container}>
-      {bookmarks.length === 0 ? (
-        <Text style={styles.statusText}>No bookmarks yet</Text>
-      ) : (
-        bookmarks.map((bookmark) => (
-          <TouchableOpacity
-            key={bookmark.id}
-            onPress={() => handleBookmarkClick(bookmark)}
-          >
-            <Card style={styles.card}>
-              <Card.Content>
-                <Title>
-                  {bookmark.title ? bookmark.title : `Bookmark #${bookmark.id}`}
-                </Title>
-                <Paragraph>{bookmark.text}</Paragraph>
-                
-                {/* Collection display */}
-                {bookmark.collection_name && (
-                  <View style={styles.metadataContainer}>
-                    <Text style={styles.metadataLabel}>Collection:</Text>
-                    <Button 
-                      mode="outlined"
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        router.push({
-                          pathname: '/collections',
-                          params: { collectionId: bookmark.collection_id }
-                        });
-                      }}
-                      style={styles.collectionButton}
-                    >
-                      {bookmark.collection_name}
-                    </Button>
-                  </View>
-                )}
-                
-                {/* Tags display */}
-                {bookmark.tags && bookmark.tags.length > 0 && (
-                  <View style={styles.metadataContainer}>
-                    <Text style={styles.metadataLabel}>Tags:</Text>
-                    <View style={styles.tagsContainer}>
-                      {bookmark.tags.map(tag => (
-                        <Button
-                          key={tag.id}
-                          mode="outlined"
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            router.push({
-                              pathname: '/tags',
-                              params: { tagId: tag.id }
-                            });
-                          }}
-                          style={styles.tagButton}
-                        >
-                          {tag.name}
-                        </Button>
-                      ))}
+    <View style={styles.container}>
+      <Searchbar
+        placeholder="Search bookmarks..."
+        onChangeText={setSearchQuery}
+        value={searchQuery}
+        style={styles.searchBar}
+      />
+      <ScrollView>
+        {filteredBookmarks.length === 0 ? (
+          <Text style={styles.statusText}>
+            {searchQuery ? 'No bookmarks found matching your search' : 'No bookmarks yet'}
+          </Text>
+        ) : (
+          filteredBookmarks.map((bookmark) => (
+            <TouchableOpacity
+              key={bookmark.id}
+              onPress={() => handleBookmarkClick(bookmark)}
+            >
+              <Card style={styles.card}>
+                <Card.Content>
+                  <Title>
+                    {bookmark.title ? bookmark.title : `Bookmark #${bookmark.id}`}
+                  </Title>
+                  <Paragraph>{bookmark.text}</Paragraph>
+                  
+                  {/* Collection display */}
+                  {bookmark.collection_name && (
+                    <View style={styles.metadataContainer}>
+                      <Text style={styles.metadataLabel}>Collection:</Text>
+                      <Button 
+                        mode="outlined"
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          router.push({
+                            pathname: '/collections',
+                            params: { collectionId: bookmark.collection_id }
+                          });
+                        }}
+                        style={styles.collectionButton}
+                      >
+                        {bookmark.collection_name}
+                      </Button>
                     </View>
-                  </View>
-                )}
-                
-                <Paragraph style={styles.timestamp}>
-                  {new Date(bookmark.created_at).toLocaleString()}
-                </Paragraph>
-                {bookmark.isLoadingSummary && (
-                  <View style={styles.summaryContainer}>
-                    <View style={styles.loadingContainer}>
-                      <ActivityIndicator />
-                      <Text style={styles.loadingText}>Generating summary...</Text>
+                  )}
+                  
+                  {/* Tags display */}
+                  {bookmark.tags && bookmark.tags.length > 0 && (
+                    <View style={styles.metadataContainer}>
+                      <Text style={styles.metadataLabel}>Tags:</Text>
+                      <View style={styles.tagsContainer}>
+                        {bookmark.tags.map(tag => (
+                          <Button
+                            key={tag.id}
+                            mode="outlined"
+                            onPress={(e) => {
+                              e.stopPropagation();
+                              router.push({
+                                pathname: '/tags',
+                                params: { tagId: tag.id }
+                              });
+                            }}
+                            style={styles.tagButton}
+                          >
+                            {tag.name}
+                          </Button>
+                        ))}
+                      </View>
                     </View>
-                  </View>
-                )}
-                {bookmark.summary && (
-                  <View style={styles.summaryContainer}>
-                    <Title style={styles.summaryTitle}>Summary</Title>
-                    <Paragraph style={styles.summaryText}>{bookmark.summary}</Paragraph>
-                  </View>
-                )}
-              </Card.Content>
-            </Card>
-          </TouchableOpacity>
-        ))
-      )}
-    </ScrollView>
+                  )}
+                  
+                  <Paragraph style={styles.timestamp}>
+                    {new Date(bookmark.created_at).toLocaleString()}
+                  </Paragraph>
+                  {bookmark.isLoadingSummary && (
+                    <View style={styles.summaryContainer}>
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator />
+                        <Text style={styles.loadingText}>Generating summary...</Text>
+                      </View>
+                    </View>
+                  )}
+                  {bookmark.summary && (
+                    <View style={styles.summaryContainer}>
+                      <Title style={styles.summaryTitle}>Summary</Title>
+                      <Paragraph style={styles.summaryText}>{bookmark.summary}</Paragraph>
+                    </View>
+                  )}
+                </Card.Content>
+              </Card>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -180,6 +212,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  searchBar: {
+    marginBottom: 16,
   },
   card: {
     marginBottom: 16,

@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   },
   bookmarkText: {
     marginBottom: 8,
+    color: '#ffffff',
   },
   metadataContainer: {
     flexDirection: 'row',
@@ -145,8 +146,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginRight: 8,
+    color: '#ffffff',
   },
   collectionChip: {
     marginRight: 8,
+    backgroundColor: '#333333',
   },
 }); 

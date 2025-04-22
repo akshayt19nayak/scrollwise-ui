@@ -136,6 +136,7 @@ const styles = StyleSheet.create({
   },
   bookmarkText: {
     marginBottom: 8,
+    color: '#ffffff',
   },
   tagsContainer: {
     flexDirection: 'row',
@@ -144,5 +145,6 @@ const styles = StyleSheet.create({
   },
   tag: {
     marginRight: 8,
+    backgroundColor: '#333333',
   },
 }); 
